@@ -1,0 +1,12 @@
+{
+	"embeds": {
+		"on_join": {
+			"title": "title"
+		}
+	},
+
+	"upgrades": {
+		"1": "juicing_plant",
+		"2": ""
+	}
+}
