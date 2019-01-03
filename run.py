@@ -1,10 +1,11 @@
 import fruitTycoon.logger
 log = fruitTycoon.logger.setup_custom_logger("root")
 
-from fruitTycoon.discordClient import DiscordClient
+from fruitTycoon.game import GameManager
+
 
 def main():
-    DiscordClient().start_bot("MzQ1MTA0NjgxOTEzMjg2NjU4.Drf1UQ.nDUXgy47CzcCnjVmrzUUrsogUQA")
+    GameManager().start_game()
 
 
 if __name__ == '__main__':

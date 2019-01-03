@@ -1,14 +1,40 @@
+# Internal Python Modules
+import os
+import logging
+
+# Imported (External) Python Modules
+import discord
+from .discordClient import DiscordClient
+
+# Game
+from .playerIndex import PlayerIndex
+from .player import Player
+from .trade import Trade
+
+# Misc
+from .json import Json
+
+log = logging.getLogger("root")
+log.debug("game.py loaded")
+
 class GameManager:
 
+    config_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/config/config.json"
+
     def __init__(self):
-        self.player_index = PlayerIndex()
-        pass
+        self.config = self.load_config()
+        
+        self.players = PlayerIndex()
+        self.client = DiscordClient(self)
+        
 
     # Config
     # ---------------------------
 
     def load_config(self):
-        pass
+        """Loads config from file."""
+        conf = Json(GameManager.config_path).data
+        return conf
 
     # Players
     # ---------------------------
@@ -45,53 +71,12 @@ class GameManager:
     async def get_player_profile(self):
         pass
 
+    # Misc
+    # ---------------------------
 
-class PlayerIndex:
+    def start_game(self):
+        # Start game stuff
+        self.client.start_bot(self.config["credentials"]["token"])
 
-    file_location = ""
-
-    def __init__(self):
-        self.list = []
-
-    async def load(self):
-        pass
-
-    async def save(self):
-        pass
-
-    async def add(self):
-        pass
-
-    async def remove(self):
-        pass
-
-    async def find(self):
-        pass
-
-
-class Player:
-
-    def __init__(self):
-        self.id = ""
-        self.type = ""
-
-        self.max_harvest_percent = 0
-        self.max_harvest_percent = 0
-        self.harvest_amount = 0
-        self.planting_cost = 0
-
-        self.money = 0
-        self.last_harvest = 0
-        self.inventory = {
-            "apple": 0,
-            "banana": 0,
-            "grape": 0
-        }
-
-        self.upgrades = []
-
-    async def save(self):
-        pass
-
-    async def load(self):
-        pass
+if __name__ == "__main__":
+    GameManager().start_game()

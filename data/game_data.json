@@ -1,0 +1,46 @@
+{
+	"embeds": {
+		"join": {
+			"title": "title"
+		}
+	},
+
+	"juice_upgrades": {
+		"regular": {
+			"name": "Refinery",
+			"description": "",
+			
+			"unlock_price": 36000,
+			"item_price": 1,
+			
+			"refine_time": 7200
+		},
+		"quality": {
+			"name": "Marketing",
+			"description": "",
+			
+			"unlock_price": 300000,
+			"item_price": 1.5,
+			
+			"refine_time": 10800
+		},
+		"mixed": {
+			"name": "Overclocked Refinery",
+			"description": "Unlocks mixed drinks",
+			
+			"unlock_price": 500000,
+			"item_price": 1.5,
+			
+			"refine_time": 14400
+		},
+		"quality_mixed": {
+			"name": "Carbon Fiber Mixing Blades",
+			"description": "",
+			
+			"unlock_price": 1600000,
+			"item_price": 4,
+			
+			"refine_time": 21600
+		}
+	}
+}

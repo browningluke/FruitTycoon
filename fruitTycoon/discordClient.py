@@ -1,38 +1,71 @@
-# import discord
-from discord.ext import commands
+# Internal Python Moduels
 import asyncio
 import logging
 
+# Imported (External) Python Modules
+import discord
+from discord.ext import commands
+
+# Misc
+from .constants import VERSION
+
 log = logging.getLogger("root")
-log.info("discordClient.py loaded")
+log.debug("discordClient.py loaded")
 
 
 class DiscordClient(commands.Bot):
 
-    def __init__(self):
-        super(DiscordClient, self).__init__(command_prefix="a.")
+    def __init__(self, prefix, game=None):
+        super(DiscordClient, self).__init__(command_prefix=prefix)
 
-        # self.game =
+        self.game = game
 
         self.loop = None
         self.help_embed = None
         self.admin_embed = None
         self.category_dict = None
 
-        self.setup_bot()
-
-    def setup_bot(self):
+        # Create commands
         self.remove_command("help")
-        self.define_commands()
+        self.create_user_commands()
+        self.create_admin_commands()
+        self.setup_help()
 
         @self.event
         async def on_ready():
-            print("Bot online")
+            await self.setup_bot()
 
-    def define_commands(self):
+        @self.event
+        async def on_message(message):
+            await self.process_commands(message)
+
+    async def setup_bot(self):
+        log.info("Connected Successfully. FruitTycoon v{}".format(VERSION))
+        
+        app_info = await self.application_info()
+        log.info('\nBot id: {}\nBot name: {}'.format(app_info.id, app_info.name))
+
+        log.info("\nServers:")
+        for x in self.servers:
+            log.info(" - {}/{}\n".format(x.id, x.name))
+
+        log.info("Bound text channels:\n - None")
+        log.info("\nOptions:\n  Command prefix: {}\n".format(self.command_prefix))
+        
+        await self.change_presence(game=discord.Game(name="{}help".format(self.command_prefix)))        
+
+    def create_user_commands(self):
         @self.command(pass_context=True)
         async def ping(ctx):
             print("Pong")
+
+    def create_admin_commands(self):
+        @self.command(pass_context=True)
+        async def stop(ctx):
+            await self.logout()
+
+    def setup_help(self):
+        pass
 
     def start_bot(self, token):
         self.loop = asyncio.get_event_loop()
@@ -53,4 +86,4 @@ class DiscordClient(commands.Bot):
 
 
 if __name__ == "__main__":
-    DiscordClient().start_bot("TOKEN")
+    DiscordClient('a.').start_bot("TOKEN")
