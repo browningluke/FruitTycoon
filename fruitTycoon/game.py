@@ -1,6 +1,7 @@
 # Internal Python Modules
 import os
 import logging
+import time
 
 # Imported (External) Python Modules
 import discord
@@ -25,7 +26,7 @@ class GameManager:
         self.config = self.load_config()
         
         self.players = PlayerIndex()
-        self.client = DiscordClient(self)
+        self.client = DiscordClient("a.", game=self)
         
 
     # Config
@@ -42,13 +43,31 @@ class GameManager:
     # Player I/O
 
     async def get_player(self, player_id):
-        pass
+        if await self.players.exists(player_id):
+            player = Player(player_id)
+            player.load()
+            return player
+        return None
+
+    async def remove_player(self, player_id):
+        await self.players.remove(player_id)
+        player = Player(player_id)
+        player.delete()
+
+        return True
 
     # Game
     # ---------------------------
 
-    async def join_game(self):
-        pass
+    async def join_game(self, ctx, fruit_type):
+        player = Player(ctx.message.author.id, fruit_type.lower())
+        player.last_harvest = int(time.time())
+        
+        await self.players.add(player.id)
+        player.save()
+
+        return True
+        
 
     async def harvest_fruit(self):
         pass
@@ -66,9 +85,6 @@ class GameManager:
     # ---------------------------
 
     async def reset_game(self):
-        pass
-
-    async def get_player_profile(self):
         pass
 
     # Misc

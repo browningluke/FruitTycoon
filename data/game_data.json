@@ -1,46 +1,109 @@
 {
 	"embeds": {
 		"join": {
-			"title": "title"
+			"title": "{0}, Wake up!",
+			"description": "Good, you're finally awake. We'll be landing soon so buckle up. After three years in cryosleep, you'll finally be able to stretch your legs.\n\n:rocket: :earth_asia:\n\nWelcome Botanist. It is time to start your fruit tycoon. You've been assigned a biodome, look after it and you'll prosper. Oh, and by the way, there are others you can trade with on this planet too so talk around and maybe it'll benefit you.\n\nGood luck {0}.",
+			"color": 3060770,
+			"footer": {
+				"text": "{0}"
+			},
+			"fields": []
+		  },
+
+		  "profile": {
+			"title": "{}'s Profile",
+			"description": "Welcome, these are your stats.",
+			"color": 3060770,
+			"fields": [
+				{
+					"name": "Type",
+					"value": "{}",
+					"inline": true
+				},
+				{
+					"name": "Money",
+					"value": ":moneybag: x{}",
+					"inline": true
+				},
+				{
+					"name": "Last Harvest",
+					"value": "{} ago",
+					"inline": true
+				},
+				{
+					"name": "Inventory",
+					"value": ":apple:: {}\n:banana:: {}\n:grapes:: {}",
+					"inline": true
+				},
+				{
+					"name": "Trades",
+					"value": "**Incoming:**\n- Caleb: :apple: x200 for :moneybag: x30.\n\n**Outgoing:**\n- Caleb: :banana: x700 for :moneybag: x100.",
+					"inline": false
+				},
+				{
+					"name": "Farm Size",
+					"value": "{} Acres ({} yield)",
+					"inline": true
+				},
+				{
+					"name": "Multiplier",
+					"value": "x{}",
+					"inline": true
+				}
+			]
 		}
 	},
 
 	"juice_upgrades": {
 		"regular": {
+			"id": 1,
 			"name": "Refinery",
 			"description": "",
 			
 			"unlock_price": 36000,
 			"item_price": 1,
 			
+			"fruit_req": [2],
+			
 			"refine_time": 7200
 		},
 		"quality": {
+			"id": 2,
 			"name": "Marketing",
 			"description": "",
 			
 			"unlock_price": 300000,
 			"item_price": 1.5,
 			
+			"fruit_req": [2],
+			
 			"refine_time": 10800
 		},
 		"mixed": {
+			"id": 3,
 			"name": "Overclocked Refinery",
 			"description": "Unlocks mixed drinks",
 			
 			"unlock_price": 500000,
-			"item_price": 1.5,
+			"item_price": 2,
 			
+			"fruit_req": [2, 1],
+
 			"refine_time": 14400
 		},
 		"quality_mixed": {
+			"id": 4,
 			"name": "Carbon Fiber Mixing Blades",
 			"description": "",
 			
 			"unlock_price": 1600000,
 			"item_price": 4,
+
+			"fruit_req": [2, 2],
 			
 			"refine_time": 21600
 		}
-	}
+	},
+
+	"fruits": ["apple", "banana", "grape"]
 }
