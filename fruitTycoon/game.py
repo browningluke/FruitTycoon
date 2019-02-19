@@ -21,12 +21,14 @@ log.debug("game.py loaded")
 class GameManager:
 
     config_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/config/config.json"
+    data_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/data/game_data.json"
 
     def __init__(self):
         self.config = self.load_config()
+        self.game_data = Json(GameManager.data_path).data
         
         self.players = PlayerIndex()
-        self.client = DiscordClient("a.", game=self)
+        self.client = DiscordClient("a.", self.game_data, game=self)
         
 
     # Config
@@ -69,8 +71,35 @@ class GameManager:
         return True
         
 
-    async def harvest_fruit(self):
-        pass
+    async def harvest(self, player_id):
+        player = Player(player_id)
+        player.load()
+
+        # Ensure sufficient time has passed (2 hours = 7200 seconds)
+        if int(time.time()) - player.last_harvest < 7200:
+            return {
+                "time_valid": False,
+                "time_remaining": 7200 - (int(time.time()) - player.last_harvest)
+            }
+
+        # Calculate harvest yield
+        harvest_yield = 1000 + (1500 * (player.upgrades["size"]-1))
+        harvest_yield *= player.upgrades["multiplier"]
+
+        # Add harvest yield to player's inventory
+        if player.type == "apple": player.inventory["apple"] += harvest_yield
+        if player.type == "banana": player.inventory["banana"] += harvest_yield
+        if player.type == "grape": player.inventory["grape"] += harvest_yield
+
+        player.last_harvest = int(time.time()) # Update last harvest
+        player.save()
+        
+        return {
+            "time_valid": True,
+            "harvest_yield": harvest_yield,
+            "type": player.type
+        }
+        
 
     async def get_profile(self):
         pass

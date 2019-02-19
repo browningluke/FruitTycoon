@@ -57,8 +57,6 @@ class Player:
         # Get object variables as string
         json_string = self.__dict__
 
-        log.info(json_string)
-
         # Dump the string to JSON
         succeeded = Json(Player.player_file + "{}.json".format(self.id), load=False).dump(json_string)
 

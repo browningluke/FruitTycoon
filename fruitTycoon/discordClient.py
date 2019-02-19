@@ -21,9 +21,9 @@ log.debug("discordClient.py loaded")
 
 class DiscordClient(commands.Bot):
 
-    data_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/data/game_data.json"
+    
 
-    def __init__(self, prefix, game=None):
+    def __init__(self, prefix, game_data, game=None):
         super(DiscordClient, self).__init__(command_prefix=prefix)
 
         self.game = game
@@ -33,9 +33,10 @@ class DiscordClient(commands.Bot):
         self.admin_embed = None
         self.category_dict = None
 
-        data = Json(DiscordClient.data_path)
-        self.embeds = data.get("embeds")
-        self.fruit_types = data.get("fruits")
+        # Defined in game_data.json
+        self.game_data = game_data
+        self.embeds = self.game_data["embeds"]
+        self.fruit_types = self.game_data["fruits"]
 
         # Create commands
         self.remove_command("help")
@@ -69,7 +70,7 @@ class DiscordClient(commands.Bot):
         await self.change_presence(game=discord.Game(name="{}help".format(self.command_prefix)))        
 
     ##
-    ### Helper functions
+    ## Helper functions
     ##
 
     @staticmethod
@@ -83,10 +84,10 @@ class DiscordClient(commands.Bot):
             embed['footer']['text'] = embed['footer']['text'].format(footer)
         return embed
 
-    def _check_types(self, raw):        
+    def _check_types(self, raw):
         if raw is None: return False
         if raw.lower() in self.fruit_types: return True
-
+ 
     def create_user_commands(self):
         """Create commands users can use."""
        
@@ -96,14 +97,13 @@ class DiscordClient(commands.Bot):
             member = ctx.message.author # Get (discord) member object from context
             
             # Ensure the user had not already joined
-            if await self.game.get_player(member.id) is not None:
+            if await self.game.get_player(member.id) is not None: 
                 await self.send_message(member, content="You have already joined the game.")
                 return
 
             # Ensure the user has entered a valid fruit type
             if fruit_type is None or not self._check_types(fruit_type):
                 await self.send_message(ctx.message.channel, "<@{}> Please enter a valid fruit type. They are:\n- {}".format(member.id, '\n- '.join(self.fruit_types)))
-                print(self._check_types(fruit_type))
                 return
 
             # Send user welcome embed
@@ -119,7 +119,30 @@ class DiscordClient(commands.Bot):
 
         @self.command(pass_context=True)
         async def harvest(ctx):
-            pass
+            member = ctx.message.author # Get (discord) member object from context
+
+            # Ensure the user had not already joined
+            if await self.game.get_player(member.id) is None: 
+                await self.send_message(member, content="You have to join the game to run this command.")
+                return
+
+            # Harvest fruit
+            harvest_details = await self.game.harvest(member.id)
+            
+            # Send message
+            if not harvest_details['time_valid']:
+                hours, minutes = divmod((harvest_details['time_remaining'] // 60), 60)
+                await self.send_typing(ctx.message.channel)
+                await self.send_message(ctx.message.channel, "<@{}>, your fruit has not fully grown. ({} hour(s) {} minute(s) remaining)".format(member.id, hours, minutes))
+            else:
+                # Format embed
+                harvest_embed = self.embeds["harvest"]
+                harvest_embed["thumbnail"]["url"] = harvest_embed["thumbnail"]["url"].format(self.game_data["img_urls"][harvest_details["type"]])
+                harvest_embed["fields"][0]["value"] = harvest_embed["fields"][0]["value"].format("grapes" if harvest_details["type"] == "grape" else harvest_details["type"], harvest_details["harvest_yield"])
+                
+                # Send embed
+                await self.send_typing(ctx.message.channel)
+                await self.send_message(member, content=None, embed=discord.Embed().from_data(harvest_embed))
     
         @self.command(pass_context=True)
         async def produce(ctx, quantity, fruit1, fruit2):

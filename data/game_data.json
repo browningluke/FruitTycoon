@@ -8,9 +8,9 @@
 				"text": "{0}"
 			},
 			"fields": []
-		  },
+		},
 
-		  "profile": {
+		"profile": {
 			"title": "{}'s Profile",
 			"description": "Welcome, these are your stats.",
 			"color": 3060770,
@@ -48,6 +48,27 @@
 				{
 					"name": "Multiplier",
 					"value": "x{}",
+					"inline": true
+				}
+			]
+		},
+
+		"harvest": {
+			"title": "Harvest Successful",
+			"description": "Your fruit has been harvested sucessfully and added to your inventory. A new batch has been planted.",
+			"color": 3060770,
+			"thumbnail": {
+				"url": "{0}"
+			},
+			"fields": [
+				{
+					"name": "Yield",
+					"value": ":{0}: x{1}",
+					"inline": true
+				},
+				{
+					"name": "Time until next harvest",
+					"value": "2 hours",
 					"inline": true
 				}
 			]
@@ -105,5 +126,11 @@
 		}
 	},
 
-	"fruits": ["apple", "banana", "grape"]
+	"fruits": ["apple", "banana", "grape"],
+	
+	"img_urls": {
+		"apple": "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/180/red-apple_1f34e.png",
+		"banana": "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/180/banana_1f34c.png",
+		"grape": "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/180/grapes_1f347.png"
+	}
 }

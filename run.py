@@ -3,7 +3,6 @@ log = fruitTycoon.logger.setup_custom_logger("root")
 
 from fruitTycoon.game import GameManager
 
-
 def main():
     GameManager().start_game()
 
