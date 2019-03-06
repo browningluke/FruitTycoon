@@ -17,7 +17,7 @@
 			"fields": [
 				{
 					"name": "Type",
-					"value": "{}",
+					"value": ":{}:",
 					"inline": true
 				},
 				{
@@ -33,11 +33,16 @@
 				{
 					"name": "Inventory",
 					"value": ":apple:: {}\n:banana:: {}\n:grapes:: {}",
-					"inline": true
+					"inline": false
 				},
 				{
-					"name": "Trades",
-					"value": "**Incoming:**\n- Caleb: :apple: x200 for :moneybag: x30.\n\n**Outgoing:**\n- Caleb: :banana: x700 for :moneybag: x100.",
+					"name": "Incoming Trades",
+					"value": "{}",
+					"inline": false
+				},
+				{
+					"name": "Outgoing Trades",
+					"value": "{}",
 					"inline": false
 				},
 				{
@@ -132,5 +137,7 @@
 		"apple": "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/180/red-apple_1f34e.png",
 		"banana": "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/180/banana_1f34c.png",
 		"grape": "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/180/grapes_1f347.png"
-	}
+	},
+
+	"max_trades": 4
 }

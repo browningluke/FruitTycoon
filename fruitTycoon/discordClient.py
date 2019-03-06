@@ -3,6 +3,7 @@ import asyncio
 import logging
 import sys
 import os
+from datetime import datetime, time
 
 # Imported (External) Python Modules
 import discord
@@ -21,14 +22,24 @@ log.debug("discordClient.py loaded")
 
 class DiscordClient(commands.Bot):
 
-    
-
     def __init__(self, prefix, game_data, game=None):
+        """Creates a client to interface with Discord.
+        
+        Arguments:
+            prefix {String} -- The prefix to identify a message as a command.
+            game_data {Dict} -- A Dictionary containing game settings.
+        
+        Keyword Arguments:
+            game {GameManager} -- A reference to a GameManager instance. (default: {None})
+        """
+    
+        # Create instance of superclass 
         super(DiscordClient, self).__init__(command_prefix=prefix)
 
         self.game = game
-
         self.loop = None
+
+        # Instantiate Embeds
         self.help_embed = None
         self.admin_embed = None
         self.category_dict = None
@@ -67,7 +78,10 @@ class DiscordClient(commands.Bot):
         log.info("Bound text channels:\n - None")
         log.info("\nOptions:\n  Command prefix: {}\n".format(self.command_prefix))
         
-        await self.change_presence(game=discord.Game(name="{}help".format(self.command_prefix)))        
+        await self.change_presence(game=discord.Game(name="{}help".format(self.command_prefix)))  
+
+        # Start leaderboard loop
+        asyncio.ensure_future(self.leaderboard_day_loop(), loop=self.loop)      
 
     ##
     ## Helper functions
@@ -112,7 +126,7 @@ class DiscordClient(commands.Bot):
             await self.send_typing(ctx.message.channel)
             await self.send_message(member, content=None, embed=discord.Embed().from_data(join_embed))
             await self.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(member.id))
-            await self.send_message(member, content="You've chosen {}. We'll plant your first lot for you. Run the harvest command in {} hours.".format(fruit_type, "2"))
+            await self.send_message(member, content="You've chosen :{}:. We'll plant your first lot for you. Run the harvest command in {} hours.".format("grapes" if fruit_type == "grape" else fruit_type, "2"))
             
             # Add user to PlayerIndex
             await self.game.join_game(ctx, fruit_type)
@@ -121,7 +135,7 @@ class DiscordClient(commands.Bot):
         async def harvest(ctx):
             member = ctx.message.author # Get (discord) member object from context
 
-            # Ensure the user had not already joined
+            # Ensure the user has already joined
             if await self.game.get_player(member.id) is None: 
                 await self.send_message(member, content="You have to join the game to run this command.")
                 return
@@ -131,7 +145,7 @@ class DiscordClient(commands.Bot):
             
             # Send message
             if not harvest_details['time_valid']:
-                hours, minutes = divmod((harvest_details['time_remaining'] // 60), 60)
+                hours, minutes = divmod((harvest_details['time_remaining'] // 60), 60) # Convert seconds to minutes, then calculate hours & minutes
                 await self.send_typing(ctx.message.channel)
                 await self.send_message(ctx.message.channel, "<@{}>, your fruit has not fully grown. ({} hour(s) {} minute(s) remaining)".format(member.id, hours, minutes))
             else:
@@ -146,6 +160,12 @@ class DiscordClient(commands.Bot):
     
         @self.command(pass_context=True)
         async def produce(ctx, quantity, fruit1, fruit2):
+            # Load player data
+
+            # Check what upgrade they have
+
+            # Produce that, and start timer
+            
             pass
 
         @self.command(pass_context=True)
@@ -154,10 +174,22 @@ class DiscordClient(commands.Bot):
 
         @self.command(pass_context=True)
         async def profile(ctx):
-            pass
+            member = ctx.message.author # Get (discord) member object from context
+
+            # Ensure the user has already joined
+            if await self.game.get_player(member.id) is None: 
+                await self.send_message(member, content="You have to join the game to run this command.")
+                return
+
+            # Create profile embed
+            profile_embed = await self.game.get_profile(member, self.embeds["profile"])
+
+            # Send embed
+            await self.send_typing(ctx.message.channel)
+            await self.send_message(member, content=None, embed=discord.Embed().from_data(profile_embed))
 
         @self.command(pass_context=True)
-        async def upgrade(arguments):
+        async def upgrade(ctx):
             pass
 
         @self.command(pass_context=True)
@@ -213,11 +245,23 @@ class DiscordClient(commands.Bot):
             await self.send_message(ctx.message.channel, "Powering down")
             await self.logout()
             log.info("Logged out")
-            sys.exit()
+            self.loop.stop()
+            os._exit(1)
 
     def setup_help(self):
         pass
 
+    async def leaderboard_day_loop(self):
+        while True:
+            target = datetime.combine(datetime.today(), time.max)
+            current_time = datetime.now()
+            delta = int((target - current_time).total_seconds())
+
+            print("leaderboard")
+            log.debug("sleeping for {} seconds".format(delta))
+
+            await asyncio.sleep(delta)
+            
     def start_bot(self, token):
         self.loop = asyncio.get_event_loop()
 
@@ -225,7 +269,10 @@ class DiscordClient(commands.Bot):
         try:
             while True:
                 try:
-                    self.loop.run_until_complete(self.start(token))
+                    self.loop.create_task(self.start(token))
+                    self.loop.run_forever()
+                    
+                    #self.loop.run_until_complete(self.start(token))
                 except Exception as e:
                     log.critical(e)
         except KeyboardInterrupt:
@@ -237,4 +284,4 @@ class DiscordClient(commands.Bot):
 
 
 if __name__ == "__main__":
-    DiscordClient('a.').start_bot("TOKEN")
+    DiscordClient('a.', None).start_bot("TOKEN")

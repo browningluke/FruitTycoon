@@ -2,6 +2,7 @@
 import os
 import logging
 import time
+import copy
 
 # Imported (External) Python Modules
 import discord
@@ -101,8 +102,40 @@ class GameManager:
         }
         
 
-    async def get_profile(self):
-        pass
+    async def get_profile(self, member, embed):
+        player = Player(member.id)
+        player.load()
+
+        # Format profile
+        profile_embed = copy.deepcopy(embed)
+        profile_embed["title"] = profile_embed["title"].format(member.name)
+        profile_embed["fields"][0]["value"] = profile_embed["fields"][0]["value"].format(
+            "grapes" if player.type == "grape" else player.type
+        ) # Type
+        profile_embed["fields"][1]["value"] = profile_embed["fields"][1]["value"].format(player.money) # Money
+        
+        # Time of last harvest
+        time_since_lh = int(time.time()) - player.last_harvest
+        hours, minutes = divmod((time_since_lh // 60), 60) # Convert seconds to minutes, then calculate hours & minutes
+        profile_embed["fields"][2]["value"] = profile_embed["fields"][2]["value"].format(
+            str(hours) + " hours " + str(minutes) + " minutes"
+        )
+
+        # Inventory
+        profile_embed["fields"][3]["value"] = profile_embed["fields"][3]["value"].format(
+            player.inventory["apple"], player.inventory["banana"], player.inventory["grape"]
+        )
+
+        # Trades
+        # TODO: Add trade formating once trade system implemented
+
+        # Farm Stats
+        profile_embed["fields"][6]["value"] = profile_embed["fields"][6]["value"].format(
+            player.upgrades["size"], player.harvest_amount
+        )
+        profile_embed["fields"][7]["value"] = profile_embed["fields"][7]["value"].format(player.upgrades["multiplier"])
+
+        return profile_embed
 
     async def get_leaderboard(self):
         pass

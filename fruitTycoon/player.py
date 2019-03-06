@@ -25,15 +25,15 @@ class Player:
         }
 
         # Trades
-        self.in_trade = [0] * 6
-        self.out_trade = [0] * 6
+        self.in_trade = [0] * 4
+        self.out_trade = [0] * 4
 
         self.upgrades = {
             "size": 1,
             "multiplier": 1
         }
 
-        self.harvest_amount = 0
+        self.harvest_amount = 1000
         self.planting_cost = 0
         
         self.max_harvest_percent = 0
@@ -53,6 +53,21 @@ class Player:
 
     def save(self):
         """Save player variables to JSON."""
+
+        # Convert Trade objects to strings
+        # Outgoing
+        if not self.out_trade == [0] * 4:
+            for pos, trade in enumerate(self.out_trade):
+                if trade == 0:
+                    continue
+                self.out_trade[pos] = self.out_trade[pos].save_string()
+
+        # Incoming
+        if not self.in_trade == [0] * 4:
+            for pos, trade in enumerate(self.in_trade):
+                if trade == 0:
+                    continue
+                self.in_trade[pos] = self.in_trade[pos].save_string()
 
         # Get object variables as string
         json_string = self.__dict__
@@ -78,6 +93,25 @@ class Player:
         except Exception as e:
             log.error(e)
             return None
+
+        # Check for and load Trades
+        # Outgoing
+        if not self.out_trade == [0] * 4:
+            for pos, trade in enumerate(self.out_trade):
+                if trade == 0:
+                    continue
+                trade = Trade()
+                trade.load_string("trade")
+                self.out_trade[pos] = trade
+
+        # Incoming
+        if not self.in_trade == [0] * 4:
+            for pos, trade in enumerate(self.in_trade):
+                if trade == 0:
+                    continue
+                trade = Trade()
+                trade.load_string("trade")
+                self.in_trade[pos] = trade
 
         return True
 
