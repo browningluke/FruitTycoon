@@ -1,8 +1,10 @@
 # Internal Python Modules
 import os
+import asyncio
 import logging
 import time
 import copy
+from datetime import datetime, time
 
 # Imported (External) Python Modules
 import discord
@@ -71,7 +73,6 @@ class GameManager:
 
         return True
         
-
     async def harvest(self, player_id):
         player = Player(player_id)
         player.load()
@@ -101,7 +102,6 @@ class GameManager:
             "type": player.type
         }
         
-
     async def get_profile(self, member, embed):
         player = Player(member.id)
         player.load()
@@ -142,6 +142,17 @@ class GameManager:
 
     async def upgrade_stat(self):
         pass
+
+    async def leaderboard_day_loop(self):
+        while True:
+            target = datetime.combine(datetime.today(), time.max)
+            current_time = datetime.now()
+            delta = int((target - current_time).total_seconds())
+
+            print("leaderboard")
+            log.debug("sleeping for {} seconds".format(delta))
+
+            await asyncio.sleep(delta)
 
     # Admin
     # ---------------------------

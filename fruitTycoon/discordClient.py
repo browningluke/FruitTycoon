@@ -3,7 +3,6 @@ import asyncio
 import logging
 import sys
 import os
-from datetime import datetime, time
 
 # Imported (External) Python Modules
 import discord
@@ -42,7 +41,6 @@ class DiscordClient(commands.Bot):
         # Instantiate Embeds
         self.help_embed = None
         self.admin_embed = None
-        self.category_dict = None
 
         # Defined in game_data.json
         self.game_data = game_data
@@ -53,7 +51,7 @@ class DiscordClient(commands.Bot):
         self.remove_command("help")
         self.create_user_commands()
         self.create_admin_commands()
-        self.setup_help()
+        self.help_embed = self.create_help_embed()
 
         @self.event
         async def on_ready():
@@ -81,7 +79,7 @@ class DiscordClient(commands.Bot):
         await self.change_presence(game=discord.Game(name="{}help".format(self.command_prefix)))  
 
         # Start leaderboard loop
-        asyncio.ensure_future(self.leaderboard_day_loop(), loop=self.loop)      
+        asyncio.ensure_future(self.game.leaderboard_day_loop(), loop=self.loop)      
 
     ##
     ## Helper functions
@@ -105,7 +103,13 @@ class DiscordClient(commands.Bot):
     def create_user_commands(self):
         """Create commands users can use."""
        
-        @self.command(pass_context=True)
+        @self.command(pass_context=True, description="help", help="[help]")
+        async def help(ctx):
+            await self.send_typing(ctx.message.channel)
+            await self.send_message(ctx.message.author, embed=self.help_embed)
+            await self.send_message(ctx.message.channel, "Sent to your DMs :e_mail:")
+
+        @self.command(pass_context=True, description="join", help="[join]")
         async def join(ctx, fruit_type=None):
             """Add the user to the game"""
             member = ctx.message.author # Get (discord) member object from context
@@ -131,7 +135,7 @@ class DiscordClient(commands.Bot):
             # Add user to PlayerIndex
             await self.game.join_game(ctx, fruit_type)
 
-        @self.command(pass_context=True)
+        @self.command(pass_context=True, description="harvest", help="[harvest]")
         async def harvest(ctx):
             member = ctx.message.author # Get (discord) member object from context
 
@@ -158,7 +162,7 @@ class DiscordClient(commands.Bot):
                 await self.send_typing(ctx.message.channel)
                 await self.send_message(member, content=None, embed=discord.Embed().from_data(harvest_embed))
     
-        @self.command(pass_context=True)
+        @self.command(pass_context=True, description="produce", help="[produce]")
         async def produce(ctx, quantity, fruit1, fruit2):
             # Load player data
 
@@ -168,11 +172,11 @@ class DiscordClient(commands.Bot):
             
             pass
 
-        @self.command(pass_context=True)
+        @self.command(pass_context=True, description="trade", help="[trade]")
         async def trade(ctx, quantity, recipient):
             pass
 
-        @self.command(pass_context=True)
+        @self.command(pass_context=True, description="profile", help="[profile]")
         async def profile(ctx):
             member = ctx.message.author # Get (discord) member object from context
 
@@ -188,23 +192,29 @@ class DiscordClient(commands.Bot):
             await self.send_typing(ctx.message.channel)
             await self.send_message(member, content=None, embed=discord.Embed().from_data(profile_embed))
 
-        @self.command(pass_context=True)
+        @self.command(pass_context=True, description="upgrade", help="[upgrade]")
         async def upgrade(ctx):
             pass
 
-        @self.command(pass_context=True)
+        @self.command(pass_context=True, description="leaderboard", help="[leaderboard]")
         async def leaderboard(ctx):
             pass
     
     def create_admin_commands(self):
         """Create commands admins can use."""
         
-        @self.group(pass_context=True)
+        @self.group(pass_context=True, description="admin", help="[admin]")
         async def admin(ctx):
             if ctx.invoked_subcommand is None:
                 await self.send_message(ctx.message.channel, "Please enter a valid subcommand.")
 
-        @admin.command(pass_context=True, description="", help="[id]")
+        @admin.command(pass_context=True, description="help", help="[help]")
+        async def help(ctx, description="help", help="[help]"):            
+            await self.send_typing(ctx.message.channel)
+            await self.send_message(ctx.message.author, embed=self.admin_embed)
+            await self.send_message(ctx.message.channel, "Sent to your DMs :e_mail:")
+
+        @admin.command(pass_context=True, description="remove_player", help="[remove_player]")
         async def removePlayer(ctx, pid):
             """Add the user to the game"""
             member = ctx.message.author # Get (discord) member object from context
@@ -217,30 +227,30 @@ class DiscordClient(commands.Bot):
             # Add user to PlayerIndex
             await self.game.remove_player(member.id)
 
-        @admin.command(pass_context=True, description="", help="[id]")
+        @admin.command(pass_context=True, description="print_list", help="[print_list]")
         async def print_list(ctx):
             await self.send_message(ctx.message.channel, content=str(self.game.players.list))
 
-        @admin.command(pass_context=True, description="", help="[id]")
+        @admin.command(pass_context=True, description="load_player", help="[load_player]")
         async def load_player(ctx, pid):
             player = await self.game.get_player(pid)
             print(player.__dict__)
         
-        @admin.command(pass_context=True, description="", help="[id]")
+        @admin.command(pass_context=True, description="reset", help="[reset]")
         async def reset(ctx):
             pass
 
-        @admin.command(pass_context=True, description="", help="[id]")
+        @admin.command(pass_context=True, description="ping", help="[ping]")
         async def ping(ctx):
             pass
 
-        @admin.command(pass_context=True, description="", help="[id]")
+        @admin.command(pass_context=True, description="reboot", help="[reboot]")
         async def reboot(ctx):
             await self.logout()
             os.system('cls')
             os.execv(sys.executable, ['python'] + sys.argv)
 
-        @admin.command(pass_context=True, description="", help="[id]")
+        @admin.command(pass_context=True, description="exit", help="[exit]")
         async def exit(ctx):
             await self.send_message(ctx.message.channel, "Powering down")
             await self.logout()
@@ -248,19 +258,60 @@ class DiscordClient(commands.Bot):
             self.loop.stop()
             os._exit(1)
 
-    def setup_help(self):
-        pass
+    def create_admin_help_embed(self, mixin):
+        """Creates a discord.Embed object for the admin help command.
+        
+        Arguments:
+            mixin {Tuple (name, GroupMixin)} -- A GroupMixin for the admin commands.
+        """
 
-    async def leaderboard_day_loop(self):
-        while True:
-            target = datetime.combine(datetime.today(), time.max)
-            current_time = datetime.now()
-            delta = int((target - current_time).total_seconds())
+        admin_embed = discord.Embed(title="Admin Commands", color=3060770)
+        column_strings = {
+            "command": "",
+            "description": "",
+            "arguments": ""
+        }
 
-            print("leaderboard")
-            log.debug("sleeping for {} seconds".format(delta))
+        for cmd in mixin[1].commands.items():
+            column_strings["command"] += "{prefix}admin {command}\n\n".format(prefix=self.command_prefix, command=cmd[0])
+            column_strings["description"] += "{description}\n\n".format(description=cmd[1].description)
+            column_strings["arguments"] += "{arguments}\n\n".format(arguments=cmd[1].help)
 
-            await asyncio.sleep(delta)
+        for x in column_strings.keys():
+            admin_embed.add_field(name=x.title(), value=column_strings[x], inline=True)
+        
+        self.admin_embed = admin_embed
+
+    def create_help_embed(self):
+        """Create a discord.Embed object for the help command.
+        
+        Returns:
+            {Embed} -- Returns an embed containing information about all user commands.
+        """
+
+        help_embed = discord.Embed(title="Commands", color=3060770)
+        column_strings = {
+            "command": "",
+            "description": "",
+            "arguments": ""
+        }
+
+        # Add command name, descriptions and arguments to their respective string for every command 
+        for cmd in self.commands.items():
+            # Add admin group to admin embed list
+            if cmd[0] == "admin":
+                self.create_admin_help_embed(cmd)
+                continue
+
+            column_strings["command"] += "{prefix}{command}\n\n".format(prefix=self.command_prefix, command=cmd[0])
+            column_strings["description"] += "{description}\n\n".format(description=cmd[1].description)
+            column_strings["arguments"] += "{arguments}\n\n".format(arguments=cmd[1].help)
+        
+        # Add columns to embed
+        for x in column_strings.keys():
+            help_embed.add_field(name=x.title(), value=column_strings[x], inline=True)
+
+        return help_embed
             
     def start_bot(self, token):
         self.loop = asyncio.get_event_loop()
