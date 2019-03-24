@@ -3,6 +3,8 @@ import asyncio
 import logging
 import sys
 import os
+import copy
+from datetime import time, datetime
 
 # Imported (External) Python Modules
 import discord
@@ -21,7 +23,7 @@ log.debug("discordClient.py loaded")
 
 class DiscordClient(commands.Bot):
 
-    def __init__(self, prefix, game_data, game=None):
+    def __init__(self, config, game_data, game=None):
         """Creates a client to interface with Discord.
         
         Arguments:
@@ -33,7 +35,7 @@ class DiscordClient(commands.Bot):
         """
     
         # Create instance of superclass 
-        super(DiscordClient, self).__init__(command_prefix=prefix)
+        super(DiscordClient, self).__init__(command_prefix=config["chat"]["prefix"])
 
         self.game = game
         self.loop = None
@@ -41,11 +43,6 @@ class DiscordClient(commands.Bot):
         # Instantiate Embeds
         self.help_embed = None
         self.admin_embed = None
-
-        # Defined in game_data.json
-        self.game_data = game_data
-        self.embeds = self.game_data["embeds"]
-        self.fruit_types = self.game_data["fruits"]
 
         # Create commands
         self.remove_command("help")
@@ -79,27 +76,18 @@ class DiscordClient(commands.Bot):
         await self.change_presence(game=discord.Game(name="{}help".format(self.command_prefix)))  
 
         # Start leaderboard loop
-        asyncio.ensure_future(self.game.leaderboard_day_loop(), loop=self.loop)      
+        #asyncio.ensure_future(self.game.leaderboard_day_loop(), loop=self.loop)      
 
-    ##
-    ## Helper functions
-    ##
-
-    @staticmethod
-    def format_embed(embed, title=None, description=None, footer=None):
-        """Formats embed from substitution list."""
-        if title is not None:
-            embed['title'] = embed['title'].format(title)
-        if description is not None:
-            embed['description'] = embed['description'].format(description)
-        if footer is not None:
-            embed['footer']['text'] = embed['footer']['text'].format(footer)
-        return embed
-
-    def _check_types(self, raw):
-        if raw is None: return False
-        if raw.lower() in self.fruit_types: return True
+    # Helper Functions
+    # ---------------------------
  
+    async def add_reactions(self, message, reactions):
+        for x in reactions:
+            await self.add_reaction(message, x)
+
+    # Commands
+    # ---------------------------
+
     def create_user_commands(self):
         """Create commands users can use."""
        
@@ -107,61 +95,18 @@ class DiscordClient(commands.Bot):
         async def help(ctx):
             await self.send_typing(ctx.message.channel)
             await self.send_message(ctx.message.author, embed=self.help_embed)
-            await self.send_message(ctx.message.channel, "Sent to your DMs :e_mail:")
+            await self.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(ctx.messsage.author.id))
 
         @self.command(pass_context=True, description="join", help="[join]")
         async def join(ctx, fruit_type=None):
             """Add the user to the game"""
-            member = ctx.message.author # Get (discord) member object from context
-            
-            # Ensure the user had not already joined
-            if await self.game.get_player(member.id) is not None: 
-                await self.send_message(member, content="You have already joined the game.")
-                return
-
-            # Ensure the user has entered a valid fruit type
-            if fruit_type is None or not self._check_types(fruit_type):
-                await self.send_message(ctx.message.channel, "<@{}> Please enter a valid fruit type. They are:\n- {}".format(member.id, '\n- '.join(self.fruit_types)))
-                return
-
-            # Send user welcome embed
-            join_embed = self.format_embed(self.embeds["join"], title=member.name, description=member.name)
-
-            await self.send_typing(ctx.message.channel)
-            await self.send_message(member, content=None, embed=discord.Embed().from_data(join_embed))
-            await self.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(member.id))
-            await self.send_message(member, content="You've chosen :{}:. We'll plant your first lot for you. Run the harvest command in {} hours.".format("grapes" if fruit_type == "grape" else fruit_type, "2"))
-            
-            # Add user to PlayerIndex
             await self.game.join_game(ctx, fruit_type)
 
         @self.command(pass_context=True, description="harvest", help="[harvest]")
         async def harvest(ctx):
-            member = ctx.message.author # Get (discord) member object from context
-
-            # Ensure the user has already joined
-            if await self.game.get_player(member.id) is None: 
-                await self.send_message(member, content="You have to join the game to run this command.")
-                return
-
-            # Harvest fruit
-            harvest_details = await self.game.harvest(member.id)
+            """Harvest fruit"""
+            await self.game.harvest(ctx)
             
-            # Send message
-            if not harvest_details['time_valid']:
-                hours, minutes = divmod((harvest_details['time_remaining'] // 60), 60) # Convert seconds to minutes, then calculate hours & minutes
-                await self.send_typing(ctx.message.channel)
-                await self.send_message(ctx.message.channel, "<@{}>, your fruit has not fully grown. ({} hour(s) {} minute(s) remaining)".format(member.id, hours, minutes))
-            else:
-                # Format embed
-                harvest_embed = self.embeds["harvest"]
-                harvest_embed["thumbnail"]["url"] = harvest_embed["thumbnail"]["url"].format(self.game_data["img_urls"][harvest_details["type"]])
-                harvest_embed["fields"][0]["value"] = harvest_embed["fields"][0]["value"].format("grapes" if harvest_details["type"] == "grape" else harvest_details["type"], harvest_details["harvest_yield"])
-                
-                # Send embed
-                await self.send_typing(ctx.message.channel)
-                await self.send_message(member, content=None, embed=discord.Embed().from_data(harvest_embed))
-    
         @self.command(pass_context=True, description="produce", help="[produce]")
         async def produce(ctx, quantity, fruit1, fruit2):
             # Load player data
@@ -173,32 +118,40 @@ class DiscordClient(commands.Bot):
             pass
 
         @self.command(pass_context=True, description="trade", help="[trade]")
-        async def trade(ctx, quantity, recipient):
-            pass
+        async def trade(ctx, recipient_id=None, request=None, offer=None):
+            """Manage trading between players
+            
+            Arguments:
+                ctx {context} -- Contains message context.
+                recipient {Member} -- @Mention of the player.
+                request {string} -- [description]
+                offer {string} -- [description]
+            """
+            await self.game.send_trade(ctx, recipient_id, request, offer)
+
+        @self.command(pass_context=True, description="trade", help="[trade]")
+        async def accept(ctx, trade_slot):
+            await self.game.accept_trade(ctx, trade_slot)
+
+        @self.command(pass_context=True, description="trade", help="[trade]")
+        async def decline(ctx, trade_slot):
+            await self.game.decline_trade(ctx, trade_slot)
 
         @self.command(pass_context=True, description="profile", help="[profile]")
         async def profile(ctx):
-            member = ctx.message.author # Get (discord) member object from context
-
-            # Ensure the user has already joined
-            if await self.game.get_player(member.id) is None: 
-                await self.send_message(member, content="You have to join the game to run this command.")
-                return
-
-            # Create profile embed
-            profile_embed = await self.game.get_profile(member, self.embeds["profile"])
-
-            # Send embed
-            await self.send_typing(ctx.message.channel)
-            await self.send_message(member, content=None, embed=discord.Embed().from_data(profile_embed))
+            await self.game.get_profile(ctx)            
 
         @self.command(pass_context=True, description="upgrade", help="[upgrade]")
-        async def upgrade(ctx):
-            pass
+        async def upgrade(ctx, stat):
+            await self.game.upgrade(ctx, stat)
+
+        @self.command(pass_context=True, description="upgrade", help="[upgrade]")
+        async def shop(ctx):
+            await self.game.get_shop(ctx)
 
         @self.command(pass_context=True, description="leaderboard", help="[leaderboard]")
         async def leaderboard(ctx):
-            pass
+            await self.game.get_leaderboard(ctx)
     
     def create_admin_commands(self):
         """Create commands admins can use."""
@@ -212,20 +165,23 @@ class DiscordClient(commands.Bot):
         async def help(ctx, description="help", help="[help]"):            
             await self.send_typing(ctx.message.channel)
             await self.send_message(ctx.message.author, embed=self.admin_embed)
-            await self.send_message(ctx.message.channel, "Sent to your DMs :e_mail:")
+            await self.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(ctx.message.author.id))
 
         @admin.command(pass_context=True, description="remove_player", help="[remove_player]")
-        async def removePlayer(ctx, pid):
-            """Add the user to the game"""
-            member = ctx.message.author # Get (discord) member object from context
-            
-            # Ensure the user had not already joined
-            if await self.game.get_player(member.id) is None:
-                await self.send_message(member, content="Player does not exist.")
+        async def remove_player(ctx, player_id=None):
+            """Remove player from the game"""
+            if player_id is None:
+                player_id = ctx.message.author.id
+
+
+            # Ensure there is a player
+            if await self.game.get_player(player_id) is None:
+                await self.send_message(ctx.message.author, content="Player does not exist.")
                 return
             
-            # Add user to PlayerIndex
-            await self.game.remove_player(member.id)
+            # Remove user from PlayerIndex
+            await self.game.remove_player(player_id)
+            await self.send_message(ctx.message.channel, "Removed {} from list.".format(player_id))
 
         @admin.command(pass_context=True, description="print_list", help="[print_list]")
         async def print_list(ctx):
@@ -236,13 +192,53 @@ class DiscordClient(commands.Bot):
             player = await self.game.get_player(pid)
             print(player.__dict__)
         
+        @admin.command(pass_context=True, description="load_player", help="[load_player]")
+        async def make_harvestable(ctx, player_id=None):
+            if player_id is None:
+                player_id = ctx.message.author.id
+            
+            # Ensure there is a player
+            if await self.game.get_player(player_id) is None:
+                await self.send_message(ctx.message.author, content="Player does not exist.")
+                return
+            
+            # Change last harvest time
+            player = await self.game.get_player(player_id)
+            player.last_harvest -= 7200
+            player.save()
+            await self.send_message(ctx.message.channel, "Made {} harvestable.".format(player_id))
+        
+        @admin.command(pass_context=True, description="load_player", help="[load_player]")
+        async def add_money(ctx, player_id=None, amount=None):
+            if player_id is None:
+                player_id = ctx.message.author.id
+            if amount is None:
+                amount = 1000
+            
+            # Ensure there is a player
+            if await self.game.get_player(player_id) is None:
+                await self.send_message(ctx.message.author, content="Player does not exist.")
+                return
+            
+            # Change last harvest time
+            player = await self.game.get_player(player_id)
+            player.money += int(amount)
+            player.save()
+            await self.send_message(ctx.message.channel, "Added {} moeny to {}".format(amount, player_id))
+        
+        @admin.command(pass_context=True, description="load_player", help="[load_player]")
+        async def top_leaderboard(ctx):
+            await self.game.get_leaderboard(daily=True)
+
         @admin.command(pass_context=True, description="reset", help="[reset]")
         async def reset(ctx):
             pass
 
         @admin.command(pass_context=True, description="ping", help="[ping]")
         async def ping(ctx):
-            pass
+            time_difference = datetime.utcnow() - ctx.message.timestamp
+            log.info("Pong. Delay: {}s".format(time_difference.total_seconds()))
+            await self.send_message(ctx.message.channel, "Pong. Delay: {}s".format(time_difference.total_seconds()))
 
         @admin.command(pass_context=True, description="reboot", help="[reboot]")
         async def reboot(ctx):
@@ -257,6 +253,9 @@ class DiscordClient(commands.Bot):
             log.info("Logged out")
             self.loop.stop()
             os._exit(1)
+
+    # Help
+    # ---------------------------
 
     def create_admin_help_embed(self, mixin):
         """Creates a discord.Embed object for the admin help command.
@@ -312,7 +311,9 @@ class DiscordClient(commands.Bot):
             help_embed.add_field(name=x.title(), value=column_strings[x], inline=True)
 
         return help_embed
-            
+
+    # Misc
+    # ---------------------------        
     def start_bot(self, token):
         self.loop = asyncio.get_event_loop()
 

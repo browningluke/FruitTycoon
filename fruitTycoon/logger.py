@@ -1,3 +1,4 @@
+import discord
 import logging
 import colorlog
 
@@ -25,10 +26,18 @@ def setup_custom_logger(name):
         style='{'))
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+    
+    # Change to INFO
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
     return logger
 
+def setup_discord_logger(path):
+    logger = logging.getLogger("discord")
+    logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler(filename=path.format("discord.log"), encoding="utf-8", mode="w")
+    handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
+    logger.addHandler(handler)
 
 def set_logger_level(logger, level):
     dict = {"CRITICAL": 50, "ERROR": 40, "WARNING": 30, "INFO": 20, "DEBUG": 10, "NOTSET": 0}

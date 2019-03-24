@@ -14,15 +14,13 @@
 			"title": "{}'s Profile",
 			"description": "Welcome, these are your stats.",
 			"color": 3060770,
+			"thumbnail": {
+				"url": "{}"
+			},
 			"fields": [
 				{
 					"name": "Type",
 					"value": ":{}:",
-					"inline": true
-				},
-				{
-					"name": "Money",
-					"value": ":moneybag: x{}",
 					"inline": true
 				},
 				{
@@ -33,17 +31,12 @@
 				{
 					"name": "Inventory",
 					"value": ":apple:: {}\n:banana:: {}\n:grapes:: {}",
-					"inline": false
+					"inline": true
 				},
 				{
-					"name": "Incoming Trades",
-					"value": "{}",
-					"inline": false
-				},
-				{
-					"name": "Outgoing Trades",
-					"value": "{}",
-					"inline": false
+					"name": "Money",
+					"value": ":moneybag: x{}",
+					"inline": true
 				},
 				{
 					"name": "Farm Size",
@@ -54,6 +47,28 @@
 					"name": "Multiplier",
 					"value": "x{}",
 					"inline": true
+				},
+				{
+					"name": "Unlocked Upgrades",
+					"value": "{}",
+					"inline": true
+				}
+			]
+		},
+
+		"profile_trades": {
+			"title": "Trades",
+			"color": 3060770,
+			"fields": [
+				{
+					"name": "Incoming",
+					"value": "(1) {}\n(2) {}\n(3) {}\n(4) {}\n",
+					"inline": true
+				},
+				{
+					"name": "Outgoing",
+					"value": "(1) {}\n(2) {}\n(3) {}\n(4) {}\n",
+					"inline": false
 				}
 			]
 		},
@@ -77,14 +92,90 @@
 					"inline": true
 				}
 			]
+		},
+		
+		"trade_confirmation": {
+			"title": "Trade to {}",
+			"description": "",
+			"color": 3060770,
+			"thumbnail": {
+				"url": "{}"
+			},
+			"author": {
+				"name": "{}",
+				"icon_url": "{}"
+			},
+			"fields": [
+				{
+					"name": "Request",
+					"value": ":{}:x{}",
+					"inline": true
+				},
+				{
+					"name": "Offer",
+					"value": ":{}:x{}",
+					"inline": true
+				}
+			]
+		},
+		
+		"trade_incoming": {
+			"title": "Trade Incoming",
+			"description": "{} has sent you a trade request.",
+			"color": 3060770,
+			"thumbnail" : {
+				"url": "{}"
+			},
+			"author": {
+				"name": "{}",
+				"icon_url": "{}"
+			},
+			"fields": [
+				{
+					"name": "Request",
+					"value": ":{}:x{}",
+					"inline": true
+				},
+				{
+					"name": "Offer",
+					"value": ":{}:x{}",
+					"inline": true
+				}
+			]
+		},
+
+		"shop": {
+			"title": "Upgrades Shop",
+			"description": "Greetings {}. Listed below is what the shop will sell you.",
+			"color": 3060770,
+			"fields": [
+				{
+					"name": "Farm Size",
+					"value": "Level {}: :moneybag:x{}"
+				},
+				{
+					"name": "Multiplier",
+					"value": "x{}: :moneybag:x{}"
+				},
+				{
+					"name": "Farm Utilites",
+					"value": "{}: :moneybag:x{}\n({})"
+				}
+    		]
 		}
 	},
 
 	"juice_upgrades": {
+		"id_to_name":{
+			"1": "regular",
+			"2": "quality",
+			"3": "mixed",
+			"4": "quality_mixed"
+		},
 		"regular": {
 			"id": 1,
 			"name": "Refinery",
-			"description": "",
+			"description": "Allows access to the produce command.",
 			
 			"unlock_price": 36000,
 			"item_price": 1,
