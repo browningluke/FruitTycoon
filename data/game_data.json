@@ -223,6 +223,8 @@
 	},
 
 	"fruits": ["apple", "banana", "grape"],
+
+	"fruit_price": 0.375,
 	
 	"img_urls": {
 		"apple": "https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/180/red-apple_1f34e.png",

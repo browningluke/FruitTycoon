@@ -100,6 +100,7 @@ class GameManager:
             return False
         if raw.lower() in self.game_data["fruits"]: 
             return True
+    
     # Game
     # ---------------------------
 
@@ -195,9 +196,65 @@ class GameManager:
             await self.client.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(member.id))
             await self.client.send_message(member, content=None, embed=discord.Embed().from_data(harvest_embed))
 
-    async def produce(self):
+    async def produce(self, ctx, drink_type):
         pass
         
+    async def sell(self, ctx, type_amount):
+        member = ctx.message.author
+
+        if not await self.is_player(member): return
+
+        player = await self.get_player(member.id)
+        
+        emojis = {"\U0001F34E": "apple", "\U0001F34C": "banana", "\U0001F347": "grape"}
+        string_list = type_amount.split("x")
+            
+        # Ensure there is an emoji passed
+        if emojis.get(string_list[0]) is None:
+            # Create error
+            print("Incorrect stuff")
+            return
+
+        # Ensure the amount is an int and is not less than 1
+        try:
+            quantity = int(string_list[1])
+
+            if quantity < 1:
+                raise ValueError
+        except ValueError:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "Please enter a correct number.")
+
+        # Ensure the player has the amount they want to sell
+        if not quantity <= player.inventory[emojis.get(string_list[0])]:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "You do not have enough {}.".format(string_list[0]))
+            return
+
+        # Calculate profit
+        profit = quantity * self.game_data["fruit_price"]
+        profit = int(profit)
+
+        # Confirm with the user
+        await self.client.send_typing(ctx.message.channel)
+        await self.client.send_message(ctx.message.channel, "This will net you :moneybag:x{}".format(profit))
+
+        await self.client.send_message(member, "Would you like to sell?")
+        confirmation_check = lambda msg: True if msg.content.lower() in ['yes', 'no'] else False
+        confirmation = await self.client.wait_for_message(check=confirmation_check, author=member, channel=ctx.message.channel)
+
+        if confirmation.content == "yes":
+            await self.client.send_message(ctx.message.channel, "You gained :moneybag:x{} for selling {}x{}".format(
+                profit, string_list[0], quantity
+            ))
+        else:
+            await self.client.send_message(ctx.message.channel, "Selling canceled :wastebasket:")
+            return
+        
+        player.money += profit
+        player.inventory[emojis.get(string_list[0])] -= quantity
+        player.save()
+    
     async def send_trade(self, ctx, recipient_id, request, offer):
         # Ensure recipient isn't blank
         if recipient_id is None: 
@@ -253,6 +310,7 @@ class GameManager:
         # Parse and/or aquire the arguments
         if request is not None and offer is not None:
             # Parse the arguments from single line command
+            # TODO: Add this
 
             # Request
             request_list = request.split("x")
@@ -516,12 +574,14 @@ class GameManager:
         
         # Send embed
         await self.client.send_typing(ctx.message.channel)
+        await self.client.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(member.id))
         for x in profile_embed:
             await self.client.send_message(member, content=None, embed=x)
     
     async def upgrade(self, ctx, stat):
         # Get (discord) member object from context
-        member = ctx.message.author 
+        member = ctx.message.author
+        stat = stat.lower()
 
         # Ensure the user has already joined
         if not await self.is_player(member): return

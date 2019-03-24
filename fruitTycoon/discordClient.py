@@ -108,14 +108,17 @@ class DiscordClient(commands.Bot):
             await self.game.harvest(ctx)
             
         @self.command(pass_context=True, description="produce", help="[produce]")
-        async def produce(ctx, quantity, fruit1, fruit2):
-            # Load player data
+        async def produce(ctx, drink_type):
+            """
+            Arguments:
+                drink_type {str} -- Either "regular" or "mixed".
+            """
 
-            # Check what upgrade they have
+            await self.game.produce(ctx, drink_type)
 
-            # Produce that, and start timer
-            
-            pass
+        @self.command(pass_context=True, description="produce", help="[produce]")
+        async def sell(ctx, type_amount):
+            await self.game.sell(ctx, type_amount)
 
         @self.command(pass_context=True, description="trade", help="[trade]")
         async def trade(ctx, recipient_id=None, request=None, offer=None):
