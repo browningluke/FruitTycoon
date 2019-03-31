@@ -162,6 +162,38 @@
 					"value": "{}: :moneybag:x{}\n({})"
 				}
     		]
+		},
+
+		"production_confirmation": {
+			"title": "Production Request",
+			"color": 3060770,
+			"fields": [
+				{
+					"name": "Type",
+					"value": "{} Juice",
+					"inline": true
+				},
+				{
+					"name": "Quality",
+					"value": "{}",
+					"inline": true
+				},
+				{
+					"name": "Profit",
+					"value": ":moneybag:x{}",
+					"inline": true
+				},
+				{
+					"name": "Fruit Requirement",
+					"value": "{}x{}",
+					"inline": true
+				},
+				{
+					"name": "Time Required",
+					"value": "{} hour(s) {} minute(s)",
+					"inline": true
+				}
+			]
 		}
 	},
 
@@ -187,7 +219,7 @@
 		"quality": {
 			"id": 2,
 			"name": "Marketing",
-			"description": "",
+			"description": "Unlocks quality drinks.",
 			
 			"unlock_price": 300000,
 			"item_price": 1.5,
@@ -199,7 +231,7 @@
 		"mixed": {
 			"id": 3,
 			"name": "Overclocked Refinery",
-			"description": "Unlocks mixed drinks",
+			"description": "Unlocks mixed drinks.",
 			
 			"unlock_price": 500000,
 			"item_price": 2,
@@ -211,7 +243,7 @@
 		"quality_mixed": {
 			"id": 4,
 			"name": "Carbon Fiber Mixing Blades",
-			"description": "",
+			"description": "Unlocks quality mixed drinks.",
 			
 			"unlock_price": 1600000,
 			"item_price": 4,

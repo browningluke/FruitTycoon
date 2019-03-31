@@ -197,10 +197,291 @@ class GameManager:
             await self.client.send_message(member, content=None, embed=discord.Embed().from_data(harvest_embed))
 
     async def produce(self, ctx, drink_type):
-        pass
+        # FUTURE: Turn this into class and save them (persistance over restarts, crashes, etc)
+        
+        # Ensure correct arguments are passed
+        if drink_type == None:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "Please enter a drink type (either regular or mixed).")
+            return
+
+        # Get (discord) member object from context
+        member = ctx.message.author
+        drink_type = drink_type.lower()
+
+        if not await self.is_player(member): return
+        
+        # Load player data
+        player = await self.get_player(member.id)
+
+        # Ensure user has access to the command
+        if not player.farm_level > 0:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "You do not have access to this command yet. Check shop for details.")
+            return
+
+        # Ensure correct argument was passed
+        if not drink_type in ["regular", "mixed"]:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "Please choose either a reguar or mixed drink.")
+            return
+        
+        if not player.farm_level > 2 and drink_type == "mixed":
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "You do not have access to mixed drinks yet. Check shop for details.")
+            return
+
+        if not ctx.message.channel.is_private:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(member.id))
+
+        emojis = {"\U0001F34E": "apple", "\U0001F34C": "banana", "\U0001F347": "grape"}
+        confirmation_check = lambda msg: True if msg.content.lower() in ['yes', 'no'] else False
+        def production_check(msg):
+                try:
+                    if int(msg.content)>0:
+                        return True
+                except ValueError:
+                    if msg.content == "all":
+                        return True
+                    return False
+
+        if drink_type == "regular":
+            # Do regular dialogue
+            
+            await self.client.send_typing(member)
+            msg = await self.client.send_message(member, "Which fruit would you like to use?")
+            await self.client.add_reactions(msg, emojis.keys())
+            emoji_res = await self.client.wait_for_reaction(emoji=list(emojis.keys()), message=msg, user=member)
+
+            # Do calculations
+            max_drink = player.inventory[emojis[emoji_res.reaction.emoji]] / self.game_data["juice_upgrades"]["regular"]["fruit_req"][0]
+            max_drink = int(max_drink)
+
+            if max_drink == 0:
+                await self.client.send_typing(ctx.message.channel)
+                await self.client.send_message(ctx.message.channel, "You do not have enough {} to refine.".format(emoji_res.reaction.emoji))
+                return
+
+            level = 0 # Regular
+            # If a user has unlocked quality products, ask if they want to make them.
+            if player.farm_level > 1:    
+                quality_hour, quality_minute = divmod((self.game_data["juice_upgrades"]["quality"]["refine_time"] // 60), 60)
+                regular_hour, regular_minute = divmod((self.game_data["juice_upgrades"]["regular"]["refine_time"] // 60), 60)
+                
+                await self.client.send_typing(member)
+                msg = await self.client.send_message(member, 
+                "Would you like to make higher quality drinks? These will take {} hour(s) {} minute(s). (Regular drinks take {} hour(s) {} minute(s))".format(
+                    quality_hour, quality_minute, regular_hour, regular_minute
+                ))
+                confirmation = await self.client.wait_for_message(check=confirmation_check, author=member, channel=await self.client.start_private_message(member))
+
+                if confirmation.content == "yes":
+                    level = 1 # Quality
+                    await self.client.send_typing(member)
+                    await self.client.send_message(member, "Quality set to high.")
+
+            await self.client.send_typing(member)
+            msg = await self.client.send_message(member, "This will make {quality} {name} juice. The conversion rate is {rate}.\n"
+                "You can produce a max of {max} {quality} {name} juice. Type `all` to produce this many, or enter a specific number.".format(
+                    quality = "regular" if level == 0 else "quality",
+                    name = emojis[emoji_res.reaction.emoji],
+                    rate = "{}x{}=\U0001F943x1".format(
+                        emoji_res.reaction.emoji,
+                        self.game_data["juice_upgrades"]["regular"]["fruit_req"][0]),
+                    max = max_drink
+                ))
+            quantity_res = await self.client.wait_for_message(check=production_check, author=member, channel=await self.client.start_private_message(member))
+
+            if quantity_res.content == "all":
+                quantity = max_drink
+            else:
+                quantity = int(quantity_res.content)
+
+            production = {
+                "time": self.game_data["juice_upgrades"]["regular"]["refine_time"] if level == 0 else self.game_data["juice_upgrades"]["quality"]["refine_time"],
+                "fruit_type": [emojis[emoji_res.reaction.emoji]],
+                "drink_quantity": quantity,
+                "fruit_cost": (self.game_data["juice_upgrades"]["regular"]["fruit_req"][0] * quantity,),
+                "unit_sell_price": self.game_data["juice_upgrades"]["regular"]["item_price"] if level == 0 else self.game_data["juice_upgrades"]["quality"]["item_price"]
+            }
+
+            # Final confirmation check
+            embed = copy.deepcopy(self.embeds["production_confirmation"])
+            embed["fields"][0]["value"] = embed["fields"][0]["value"].format(emoji_res.reaction.emoji)
+            embed["fields"][1]["value"] = embed["fields"][1]["value"].format("Regular" if level == 0 else "Quality")
+            embed["fields"][2]["value"] = embed["fields"][2]["value"].format(production["unit_sell_price"] * production["drink_quantity"])
+            embed["fields"][3]["value"] = embed["fields"][3]["value"].format(emoji_res.reaction.emoji, production["fruit_cost"][0])
+            
+            hours, minutes = divmod((production["time"] // 60), 60)
+            embed["fields"][4]["value"] = embed["fields"][4]["value"].format(hours, minutes)
+
+            await self.client.send_typing(member)
+            await self.client.send_message(member, embed=discord.Embed().from_data(embed))
+            await self.client.send_message(member, "Would you like to start production?")
+            confirmation = await self.client.wait_for_message(check=confirmation_check, author=member, channel=await self.client.start_private_message(member))
+
+            if confirmation.content == "yes":
+                await self.client.send_typing(member)
+                await self.client.send_message(member, "Production started.")
+            else:
+                await self.client.send_typing(member)
+                await self.client.send_message(member, "Production canceled.")
+                return
+
+        else:    
+            # Do mixed dialogue
+            # Get 1st fruit
+            await self.client.send_typing(member)
+            msg = await self.client.send_message(member, "Which 1st fruit would you like to use?")
+            await self.client.add_reactions(msg, emojis.keys())
+            fruit1_res = await self.client.wait_for_reaction(emoji=list(emojis.keys()), message=msg, user=member)
+
+            # Get 2nd fruit
+            await self.client.send_typing(member)
+            msg = await self.client.send_message(member, "Which 2nd fruit would you like to use?")
+            await self.client.add_reactions(msg, emojis.keys())
+            fruit2_res = await self.client.wait_for_reaction(emoji=list(emojis.keys()).remove(fruit1_res.reaction.emoji), message=msg, user=member)
+
+            level = 0 # Regular
+            # If a user has unlocked quality products, ask if they want to make them.
+            if player.farm_level > 3:    
+                quality_hour, quality_minute = divmod((self.game_data["juice_upgrades"]["quality_mixed"]["refine_time"] // 60), 60)
+                regular_hour, regular_minute = divmod((self.game_data["juice_upgrades"]["mixed"]["refine_time"] // 60), 60)
+                
+                await self.client.send_typing(member)
+                msg = await self.client.send_message(member, 
+                "Would you like to make higher quality mixed drinks? These will take {} hour(s) {} minute(s). (Regular drinks take {} hour(s) {} minute(s))".format(
+                    quality_hour, quality_minute, regular_hour, regular_minute
+                ))
+                confirmation = await self.client.wait_for_message(check=confirmation_check, author=member, channel=await self.client.start_private_message(member))
+
+                if confirmation.content == "yes":
+                    level = 1 # Quality
+                    await self.client.send_typing(member)
+                    await self.client.send_message(member, "Quality set to high.")
+  
+            # Get max drink
+            if level == 1:
+                # Account for quality mixed
+                calculated_amounts = []
+                
+                # 1st Fruit
+                calculated_amounts.append(
+                    player.inventory[emojis[fruit1_res.reaction.emoji]] / self.game_data["juice_upgrades"]["quality_mixed"]["fruit_req"][0]
+                )
+
+                # 2nd Fruit
+                calculated_amounts.append(
+                    player.inventory[emojis[fruit2_res.reaction.emoji]] / self.game_data["juice_upgrades"]["quality_mixed"]["fruit_req"][1]
+                )
+                
+                max_drink = int(min(calculated_amounts))
+            else:
+                # Account for regular mixed
+                calculated_amounts = []
+                
+                # 1st Fruit
+                calculated_amounts.append(
+                    player.inventory[emojis[fruit1_res.reaction.emoji]] / self.game_data["juice_upgrades"]["mixed"]["fruit_req"][0]
+                )
+
+                # 2nd Fruit
+                calculated_amounts.append(
+                    player.inventory[emojis[fruit2_res.reaction.emoji]] / self.game_data["juice_upgrades"]["mixed"]["fruit_req"][1]
+                )
+                
+                max_drink = int(min(calculated_amounts))
+
+            if max_drink == 0:
+                await self.client.send_typing(ctx.message.channel)
+                await self.client.send_message(ctx.message.channel, "You do not have enough {} to refine.".format(emoji_res.reaction.emoji))
+                return
+            
+            await self.client.send_typing(member)
+            msg = await self.client.send_message(member, "This will make {quality} {name} juice. The conversion rate is {rate}.\n"
+                "You can produce a max of {max} {quality} {name} juice. Type `all` to produce this many, or enter a specific number.".format(
+                    quality = "regular mixed" if level == 0 else "quality mixed",
+                    name = emojis[fruit1_res.reaction.emoji] + " " + emojis[fruit2_res.reaction.emoji],
+                    rate = "{}x{} + {}x{} =\U0001F943x1".format(
+                        fruit1_res.reaction.emoji,
+                        self.game_data["juice_upgrades"]["mixed"]["fruit_req"][0] if level == 0 else self.game_data["juice_upgrades"]["quality_mixed"]["fruit_req"][0],
+                        fruit2_res.reaction.emoji,
+                        self.game_data["juice_upgrades"]["mixed"]["fruit_req"][1] if level == 0 else self.game_data["juice_upgrades"]["quality_mixed"]["fruit_req"][1]),
+                    max = max_drink
+                ))
+            quantity_res = await self.client.wait_for_message(check=production_check, author=member, channel=await self.client.start_private_message(member))
+
+            if quantity_res.content == "all":
+                quantity = max_drink
+            else:
+                quantity = int(quantity_res.content)
+
+            production = {
+                "time": self.game_data["juice_upgrades"]["mixed"]["refine_time"] if level == 0 else self.game_data["juice_upgrades"]["quality_mixed"]["refine_time"],
+                "fruit_type": [emojis[fruit1_res.reaction.emoji], emojis[fruit2_res.reaction.emoji]],
+                "drink_quantity": quantity,
+                "fruit_cost": (
+                    (self.game_data["juice_upgrades"]["mixed"]["fruit_req"][0] if level == 0 else self.game_data["juice_upgrades"]["quality_mixed"]["fruit_req"][0]) * quantity,
+                    (self.game_data["juice_upgrades"]["mixed"]["fruit_req"][1] if level == 0 else self.game_data["juice_upgrades"]["quality_mixed"]["fruit_req"][1]) * quantity
+                ),
+                "unit_sell_price": self.game_data["juice_upgrades"]["mixed"]["item_price"] if level == 0 else self.game_data["juice_upgrades"]["quality_mixed"]["item_price"]
+            }
+
+            # Final confirmation check
+            embed = copy.deepcopy(self.embeds["production_confirmation"])
+            embed["fields"][0]["value"] = embed["fields"][0]["value"].format(fruit1_res.reaction.emoji+fruit2_res.reaction.emoji)
+            embed["fields"][1]["value"] = embed["fields"][1]["value"].format("Regular mixed" if level == 0 else "Quality mixed")
+            embed["fields"][2]["value"] = embed["fields"][2]["value"].format(production["unit_sell_price"] * production["drink_quantity"])
+            embed["fields"][3]["value"] = embed["fields"][3]["value"].format(
+                fruit1_res.reaction.emoji, 
+                "{}\n{}x{}".format(
+                    production["fruit_cost"][0],
+                    fruit2_res.reaction.emoji,
+                    production["fruit_cost"][1]
+                )
+            )
+            
+            hours, minutes = divmod((production["time"] // 60), 60)
+            embed["fields"][4]["value"] = embed["fields"][4]["value"].format(hours, minutes)
+
+            await self.client.send_typing(member)
+            await self.client.send_message(member, embed=discord.Embed().from_data(embed))
+            await self.client.send_message(member, "Would you like to start production?")
+            confirmation = await self.client.wait_for_message(check=confirmation_check, author=member, channel=await self.client.start_private_message(member))
+
+            if confirmation.content == "yes":
+                await self.client.send_typing(member)
+                await self.client.send_message(member, "Production started.")
+            else:
+                await self.client.send_typing(member)
+                await self.client.send_message(member, "Production canceled.")
+                return
+
+        # By this line production (dict) should be defined
+        
+        # Sleep for time
+        # await asyncio.sleep(production["time"]) # Actual command
+        await asyncio.sleep(5) # For demonstration
+        
+        # Send message
+        await self.client.send_message(member, "Your production request has finished. This has netted you :moneybag:x{}".format(
+            production["unit_sell_price"] * production["drink_quantity"]
+        ))
+        # Update user profile
+        for i, x in enumerate(production["fruit_type"]):
+            player.inventory[x] -= production["fruit_cost"][i]
+        player.money += production["unit_sell_price"] * production["drink_quantity"]
+
+        player.save()
         
     async def sell(self, ctx, type_amount):
         member = ctx.message.author
+
+        if type_amount is None:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "Please enter a type and an amount.")
+            break
 
         if not await self.is_player(member): return
 
@@ -419,6 +700,11 @@ class GameManager:
         # Load players into variables
         recipient_member = ctx.message.author
         sender_member = None
+
+        if trade_slot is None:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "Please enter a trade slot.")
+            break
         
         if not await self.is_player(recipient_member): return
         
@@ -502,6 +788,11 @@ class GameManager:
         recipient_member = ctx.message.author
         sender_member = None
         
+        if trade_slot is None:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "Please enter a trade slot.")
+            break
+
         if not await self.is_player(recipient_member): return
         
         try:
@@ -581,6 +872,11 @@ class GameManager:
     async def upgrade(self, ctx, stat):
         # Get (discord) member object from context
         member = ctx.message.author
+        
+        if stat is None:
+            await self.client.send_typing(ctx.message.channel)
+            await self.client.send_message(ctx.message.channel, "Please enter a stat you want to upgrade.")
+        
         stat = stat.lower()
 
         # Ensure the user has already joined
@@ -705,7 +1001,6 @@ class GameManager:
             await self.client.send_typing(ctx.message.channel)
             await self.client.send_message(ctx.message.channel, embed=leaderboard_embed)
         
-
         if daily:
             leaderboard_channel = self.client.get_channel(self.leaderboard_channel)
 
@@ -725,8 +1020,7 @@ class GameManager:
             await self.client.send_message(leaderboard_channel, embed=discord.Embed(
                 title="", color=discord.Color(3060770), description="Type `{}leaderboard` for the full leaderboard.".format(self.client.command_prefix)
             ))
-
-        
+      
     async def leaderboard_day_loop(self):
         while True:
             target = datetime.datetime.combine(datetime.datetime.today(), datetime.time.max)
@@ -735,6 +1029,7 @@ class GameManager:
 
             print("leaderboard")
             log.debug("sleeping for {} seconds".format(delta))
+            await self.get_leaderboard(daily=True)
 
             await asyncio.sleep(delta)
 

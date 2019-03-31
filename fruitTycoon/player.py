@@ -181,7 +181,7 @@ class Player:
                 juice_upgrades[juice_upgrades["id_to_name"][str(self.farm_level+1)]]["description"]
             )
         else:
-            embed["fields"][2]["value"] = embed["fields"][2]["value"].format("This cannot be upgraded any higher.")
+            embed["fields"][2]["value"] = "This cannot be upgraded any higher."
 
         # Create shop help embed
         embed_help = {

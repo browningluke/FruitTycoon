@@ -76,7 +76,7 @@ class DiscordClient(commands.Bot):
         await self.change_presence(game=discord.Game(name="{}help".format(self.command_prefix)))  
 
         # Start leaderboard loop
-        #asyncio.ensure_future(self.game.leaderboard_day_loop(), loop=self.loop)      
+        asyncio.ensure_future(self.game.leaderboard_day_loop(), loop=self.loop)      
 
     # Helper Functions
     # ---------------------------
@@ -91,24 +91,26 @@ class DiscordClient(commands.Bot):
     def create_user_commands(self):
         """Create commands users can use."""
        
-        @self.command(pass_context=True, description="help", help="[help]")
+        @self.command(pass_context=True, description="Open this panel.", help="none")
         async def help(ctx):
             await self.send_typing(ctx.message.channel)
             await self.send_message(ctx.message.author, embed=self.help_embed)
-            await self.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(ctx.messsage.author.id))
+            
+            if not ctx.message.channel.is_private:
+                await self.send_message(ctx.message.channel, "<@{}>, check your DMs. :incoming_envelope:".format(ctx.message.author.id))
 
-        @self.command(pass_context=True, description="join", help="[join]")
+        @self.command(pass_context=True, description="Join the game.", help="[type] (optional)")
         async def join(ctx, fruit_type=None):
             """Add the user to the game"""
             await self.game.join_game(ctx, fruit_type)
 
-        @self.command(pass_context=True, description="harvest", help="[harvest]")
+        @self.command(pass_context=True, description="Harvest your fruit.", help="none")
         async def harvest(ctx):
             """Harvest fruit"""
             await self.game.harvest(ctx)
             
-        @self.command(pass_context=True, description="produce", help="[produce]")
-        async def produce(ctx, drink_type):
+        @self.command(pass_context=True, description="Turn fruit into drinks.", help="[type] (regular/mixed)")
+        async def produce(ctx, drink_type=None):
             """
             Arguments:
                 drink_type {str} -- Either "regular" or "mixed".
@@ -116,11 +118,11 @@ class DiscordClient(commands.Bot):
 
             await self.game.produce(ctx, drink_type)
 
-        @self.command(pass_context=True, description="produce", help="[produce]")
-        async def sell(ctx, type_amount):
+        @self.command(pass_context=True, description="Sell fruit directly.", help="[type]")
+        async def sell(ctx, type_amount=None):
             await self.game.sell(ctx, type_amount)
 
-        @self.command(pass_context=True, description="trade", help="[trade]")
+        @self.command(pass_context=True, description="Send a trade request.", help="[@user]")
         async def trade(ctx, recipient_id=None, request=None, offer=None):
             """Manage trading between players
             
@@ -132,27 +134,27 @@ class DiscordClient(commands.Bot):
             """
             await self.game.send_trade(ctx, recipient_id, request, offer)
 
-        @self.command(pass_context=True, description="trade", help="[trade]")
-        async def accept(ctx, trade_slot):
+        @self.command(pass_context=True, description="Accept a trade request.", help="[slot]")
+        async def accept(ctx, trade_slot=None):
             await self.game.accept_trade(ctx, trade_slot)
 
-        @self.command(pass_context=True, description="trade", help="[trade]")
-        async def decline(ctx, trade_slot):
+        @self.command(pass_context=True, description="Decline a trade request.", help="[slot]")
+        async def decline(ctx, trade_slot=None):
             await self.game.decline_trade(ctx, trade_slot)
 
-        @self.command(pass_context=True, description="profile", help="[profile]")
+        @self.command(pass_context=True, description="Open your profile.", help="none")
         async def profile(ctx):
             await self.game.get_profile(ctx)            
 
-        @self.command(pass_context=True, description="upgrade", help="[upgrade]")
-        async def upgrade(ctx, stat):
+        @self.command(pass_context=True, description="Upgrade a stat.", help="[stat]")
+        async def upgrade(ctx, stat=None):
             await self.game.upgrade(ctx, stat)
 
-        @self.command(pass_context=True, description="upgrade", help="[upgrade]")
+        @self.command(pass_context=True, description="Open the shop.", help="none")
         async def shop(ctx):
             await self.game.get_shop(ctx)
 
-        @self.command(pass_context=True, description="leaderboard", help="[leaderboard]")
+        @self.command(pass_context=True, description="Show the leaderboard.", help="none")
         async def leaderboard(ctx):
             await self.game.get_leaderboard(ctx)
     
@@ -227,7 +229,7 @@ class DiscordClient(commands.Bot):
             player = await self.game.get_player(player_id)
             player.money += int(amount)
             player.save()
-            await self.send_message(ctx.message.channel, "Added {} moeny to {}".format(amount, player_id))
+            await self.send_message(ctx.message.channel, "Added {} money to {}".format(amount, player_id))
         
         @admin.command(pass_context=True, description="load_player", help="[load_player]")
         async def top_leaderboard(ctx):
