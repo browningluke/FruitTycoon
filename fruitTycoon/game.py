@@ -481,7 +481,7 @@ class GameManager:
         if type_amount is None:
             await self.client.send_typing(ctx.message.channel)
             await self.client.send_message(ctx.message.channel, "Please enter a type and an amount.")
-            break
+            return
 
         if not await self.is_player(member): return
 
@@ -704,7 +704,7 @@ class GameManager:
         if trade_slot is None:
             await self.client.send_typing(ctx.message.channel)
             await self.client.send_message(ctx.message.channel, "Please enter a trade slot.")
-            break
+            return
         
         if not await self.is_player(recipient_member): return
         
@@ -791,7 +791,7 @@ class GameManager:
         if trade_slot is None:
             await self.client.send_typing(ctx.message.channel)
             await self.client.send_message(ctx.message.channel, "Please enter a trade slot.")
-            break
+            return
 
         if not await self.is_player(recipient_member): return
         
@@ -911,7 +911,7 @@ class GameManager:
 
         elif stat == "multiplier":
             # Check if player has money
-            cost = player.calculate_upgrade("size")
+            cost = player.calculate_upgrade("multiplier")
             
             if not cost <= player.money:
                 await self.client.send_typing(ctx.message.channel)
