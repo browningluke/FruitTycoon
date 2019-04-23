@@ -39,23 +39,25 @@
 
 #### Events
 
-##### All commands
+##### All Commands
 
-![on all commands](flowcharts/on all commands/on all commands.png)
+![on_all_commands](flowcharts/on_all_commands/on_all_commands.png)
 
-![on join command](flowcharts/on join command/on join command.png)
+##### Join Command
 
-##### Harvest command
+![on_join_command](flowcharts/on_join_command/on_join_command.png)
 
-![on harvest command](flowcharts/on harvest command/on harvest command.png)
+##### Harvest Command
 
-##### Produce command
+![on_harvest_command](flowcharts/on_harvest_command/on_harvest_command.png)
 
-![on produce command](flowcharts/on produce command/on produce command.png)
+##### Produce Command
+
+![on_produce_command](flowcharts/on_produce_command/on_produce_command.png)
 
 ##### Trade Command
 
-![trade send](flowcharts/trade send/trade send.png)
+![trade_send](flowcharts/trade_send/trade_send.png)
 
 ### UML Diagram
 
@@ -75,11 +77,11 @@
 
 ##### Incoming Trade Message
 
-![trade incoming](messages/trade incoming.png)
+![trade incoming](messages/trade_incoming.png)
 
 ##### Outgoing Trade Message
 
-![trade outgoing](messages/trade outgoing.png)
+![trade outgoing](messages/trade_outgoing.png)
 
 ### Fruit types & Starting Variables
 
@@ -99,7 +101,7 @@
 
 ##### Graph
 
-![ Multiplier Numbers](graphs/Multiplier Price vs. Multiplier Numbers.png)
+![ Multiplier Numbers](graphs/Multiplier_graph.png)
 
 #### Plot Size
 
@@ -109,7 +111,7 @@
 
 ##### Graph
 
-![ Plot Harvest Numbers](graphs/Plot Price vs. Plot Harvest Numbers.png)
+![ Plot Harvest Numbers](graphs/Plot_graph.png)
 
 | Type                | Unlock price | Unlock name                | Price per Item | Refinery time | Fruit-Juice Ratio |
 | ------------------- | ------------ | -------------------------- | -------------- | ------------- | ----------------- |
@@ -121,7 +123,7 @@
 
 ### File structure
 
-![file structure_planned](file structure_planned.png)
+![file structure_planned](file_structure_planned.png)
 
 ### Test Plan
 
