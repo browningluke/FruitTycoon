@@ -97,7 +97,11 @@
 
 ##### Value
 
+![multiplier_value](graphs/multiplier_value.png)
+
 ##### Price
+
+![multiplier_price](graphs/multiplier_price.png)
 
 ##### Graph
 
@@ -107,7 +111,11 @@
 
 ##### Value
 
+![plot_value](graphs/plot_value.png)
+
 ##### Price
+
+![plot_price](graphs/plot_price.png)
 
 ##### Graph
 
