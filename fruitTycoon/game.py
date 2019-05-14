@@ -8,9 +8,9 @@ import copy
 
 # Imported (External) Python Modules
 import discord
-from .discordClient import DiscordClient
 
 # Game
+from .discordClient import DiscordClient
 from .playerIndex import PlayerIndex
 from .player import Player
 from .trade import Trade
@@ -983,9 +983,7 @@ class GameManager:
             score = (member, player.money)
             player_scores.append(score)
 
-        # print("Unsorted: ", player_scores)
         player_scores = sorted(player_scores, key=lambda n: n[1], reverse=True)
-        # print("Sorted: ", player_scores)
 
         # Create new/Overwrite self.leaderboard_embed
         leaderboard_embed = discord.Embed(title="Leaderboard", color=discord.Color(3060770))
@@ -1027,7 +1025,6 @@ class GameManager:
             current_time = datetime.datetime.now()
             delta = int((target - current_time).total_seconds())
 
-            print("leaderboard")
             log.debug("sleeping for {} seconds".format(delta))
             await self.get_leaderboard(daily=True)
 
