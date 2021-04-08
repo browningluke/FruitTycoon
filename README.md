@@ -1,4 +1,4 @@
-# Fruit Tycoon
+# Fruit Tycoon: An IB Computer Science IA
 
 ### Table of Contents
 
@@ -11,3 +11,5 @@
 - [Criterion D](.docs/Criterion-D/Criterion-D.md)
 
 - [Criterion E](.docs/Criterion-E/Criterion-E.md)
+
+This project was scored at a 7/7 by the IBO.
